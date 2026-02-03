@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PROJECT TRIAGE — Менеджмент в условиях кризиса</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- Пиксельный курсор -->
+    <div class="pixel-cursor" id="pixel-cursor"></div>
+
+    <!-- Индикатор рейтинга -->
+    <div id="leaderboard-status" class="leaderboard-status" style="display: none;"></div>
+    
+    <!-- Главный контейнер -->
+    <div class="main-container">
+        <!-- ЭКРАН 1: Старт -->
+        <section id="start-screen" class="game-screen active">
+            <div class="screen-content start-content">
+                <div class="title-section">
+                    <h1 class="game-title">ИГРА В</h1>
+                    <h1 class="game-title-sub">РАВНОВЕСИЕ</h1>
+                    <div class="subtitle">прими правильные решения в условиях кризиса</div>
+                    <div class="pixel-divider"></div>
+                </div>
+
+                <div class="compact-hero">
+                    <div class="compact-stats">
+                        <div class="compact-stat">
+                            <div class="stat-icon">💰</div>
+                            <div class="stat-main">1 000 000 ₽</div>
+                            <div class="stat-desc">Это твой стартовый бюджет</div>
+                        </div>
+                        <div class="compact-stat">
+                            <div class="stat-icon">⚡</div>
+                            <div class="stat-main">15 ВЫЗОВОВ</div>
+                            <div class="stat-desc">Иммено столько критических ситуаций необходимо решить</div>
+                        </div>
+                        <div class="compact-stat">
+                            <div class="stat-icon">⚖️</div>
+                            <div class="stat-main">3 МЕТРИКИ</div>
+                            <div class="stat-desc">Соблюдай баланс между ними</div>
+                        </div>
+                    </div>
+
+                    <div class="compact-rules">
+                        <div class="rule-line">
+                            <span class="rule-icon">⚠️</span>
+                            <span>Бюджет ≤ 0 = <strong>БАНКРОТСТВО ПРОЕКТА</strong></span>
+                        </div>
+                        <div class="rule-line">
+                            <span class="rule-icon">⚠️</span>
+                            <span>Атмосфера ≤ 20% = <strong>КОМАНДА САБОТИРУЕТ РАБОТУ</strong></span>
+                        </div>
+                        <div class="rule-line">
+                            <span class="rule-icon">⚠️</span>
+                            <span>Качество ≤ 30% = <strong>ПРОДУКТ НЕЖИЗНЕСПОСОБЕН</strong></span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="game-description">
+                    <p>Перед тобой будет описание ситуаций — реальных вызовов из жизни IT-руководителя.
+Выбери один из вариантов действий, и это мгновенно изменит твои показатели.
+Идеального пути нет. Есть только твоя способность балансировать, видеть долгосрочные последствия.
+Доведи все три показателя выше критической черты — и проект выживет. 
+Управляй ими мастерски — и станешь легендой.</p>
+                </div>
+
+                <div class="cta-section">
+                    <div class="btn-container">
+                        <button id="start-game-btn" class="btn btn-primary btn-large pixel-btn">
+                            <span class="btn-text">НАЧАТЬ</span>
+                        </button>
+                    </div>
+                    <div class="hint-text">Используй мышь с пиксельным курсором для выбора</div>
+                </div>
+            </div>
+        </section>
+
+         <!-- ЭКРАН 2: Ввод имени -->
+        <section id="name-screen" class="game-screen">
+            <div class="screen-content start-content">
+                <div class="title-section">
+                    <h2 class="game-title">ВВЕДИ СВОЁ ИМЯ</h2>
+                    <div class="subtitle">для таблицы рекордов</div>
+                    <div class="pixel-divider"></div>
+                </div>
+
+                <div class="name-input-container">
+                    <input 
+                        type="text" 
+                        id="player-name"
+                        class="pixel-input"
+                        maxlength="15"
+                        placeholder="ТВОЙ НИК (до 15 символов)"
+                        autocomplete="off"
+                        autofocus
+                    />
+                    <div class="input-hint">Это имя увидят все в таблице лидеров</div>
+                    
+                    <div class="stats-preview">
+                        <div class="stat-preview">
+                            <span>Твой рейтинг:</span>
+                            <span id="preview-score">0</span>
+                        </div>
+                        <div class="stat-preview">
+                            <span>Твой ранг:</span>
+                            <span id="preview-rank">AAA</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cta-section">
+                    <div class="btn-container">
+                        <button id="save-name-btn" class="btn btn-primary btn-large pixel-btn">
+                            <span class="btn-text">СОХРАНИТЬ И НАЧАТЬ</span>
+                        </button>
+                        <button id="back-to-menu-btn" class="btn btn-secondary pixel-btn" style="margin-left: 20px;">
+                            <span class="btn-text">НАЗАД</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ЭКРАН 3: Игровой процесс -->
+        <section id="game-screen" class="game-screen">
+            <div class="screen-content compact-game">
+                <!-- Верхняя панель: метрики + прогресс -->
+                <div class="top-panel">
+                    <!-- Метрики в строку -->
+                    <div class="compact-metrics">
+                        <div class="compact-metric budget">
+                            <div class="metric-header">
+                                <span class="metric-label">БЮДЖЕТ</span>
+                                <span id="budget-value" class="metric-value">1 000 000 ₽</span>
+                            </div>
+                            <div class="metric-bar-container">
+                                <div id="budget-bar" class="metric-bar good" style="width: 67%"></div>
+                            </div>
+                            <div class="metric-warning">📉 КРИТИЧЕСКОЕ: 0 ₽</div>
+                        </div>
+                        
+                        <div class="compact-metric atmosphere">
+                            <div class="metric-header">
+                                <span class="metric-label">АТМОСФЕРА</span>
+                                <span id="atmosphere-value" class="metric-value">75%</span>
+                            </div>
+                            <div class="metric-bar-container">
+                                <div id="atmosphere-bar" class="metric-bar good" style="width: 75%"></div>
+                            </div>
+                            <div class="metric-warning">📉 КРИТИЧЕСКОЕ: 20%</div>
+                        </div>
+                        
+                        <div class="compact-metric quality">
+                            <div class="metric-header">
+                                <span class="metric-label">КАЧЕСТВО</span>
+                                <span id="quality-value" class="metric-value">80%</span>
+                            </div>
+                            <div class="metric-bar-container">
+                                <div id="quality-bar" class="metric-bar good" style="width: 80%"></div>
+                            </div>
+                            <div class="metric-warning">📉 КРИТИЧЕСКОЕ: 30%</div>
+                        </div>
+                    </div>
+                    
+                    <!-- Прогресс -->
+                    <div class="compact-progress">
+                        <div class="progress-info">
+                            <span class="progress-label">ВЫЗОВ</span>
+                            <span class="progress-numbers">
+                                <span id="current-situation">1</span>/<span id="total-situations">15</span>
+                            </span>
+                        </div>
+                        <div class="progress-visual">
+                            <div class="progress-bar-container">
+                                <div id="progress-bar" class="progress-bar" style="width: 7%"></div>
+                            </div>
+                            <div class="progress-steps">
+                                <div class="step-dot active"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                                <div class="step-dot"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Основной контент: ситуация + выборы -->
+                <div class="game-content">
+                    <!-- Ситуация -->
+                    <div class="situation-box">
+                        <div class="situation-header">
+                            <div class="crisis-badge">ВЫЗОВ #<span id="crisis-number">1</span></div>
+                            <h3 id="situation-title">Технологический раскол</h3>
+                        </div>
+                        <div class="situation-text" id="situation-text">
+                            Проект только начинается. Твой старый Lead Developer настаивает на устаревшей технологии — это ускорит старт в 2 раза. Молодые разработчики рвутся на современный стек, угрожая увольнением.
+                        </div>
+                    </div>
+                    
+                    <!-- Варианты выбора -->
+                    <div class="choices-box" id="choices-container">
+                        <!-- Варианты загружаются через JS -->
+                    </div>
+                </div>
+
+                <!-- Панель последствий -->
+                <div id="consequence-panel" class="consequence-panel" style="display: none;">
+                    <div class="consequence-header">
+                        <h4>РЕЗУЛЬТАТ РЕШЕНИЯ</h4>
+                        <div class="consequence-metrics" id="consequence-metrics"></div>
+                    </div>
+                    <p id="consequence-text" class="consequence-text"></p>
+                    <div class="consequence-actions">
+                        <button id="next-situation-btn" class="btn btn-primary pixel-btn">
+                            <span class="btn-text">СЛЕДУЮЩИЙ ВЫЗОВ</span>
+                            <span class="btn-icon">→</span>
+                        </button>
+                    </div>
+                    <div class="consequence-note">Решение принято. Изменить нельзя.</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ЭКРАН 4: Победа -->
+        <section id="win-screen" class="game-screen">
+            <div class="screen-content result-content">
+                <div class="result-header">
+                    <h2 class="result-title">🏆 ПРОЕКТ УСПЕШНО ЗАВЕРШЁН</h2>
+                    <div class="result-rank">
+                        <span id="final-rank" class="rank-badge">AAA</span>
+                    </div>
+                    <h3 id="result-player-title" class="player-title">ЛЕГЕНДАРНЫЙ ЛИДЕР</h3>
+                </div>
+
+                <div class="result-description">
+                    <p id="result-description">
+                        Ты успешно провёл проект через все кризисы! Идеальный баланс между бюджетом, командой и качеством продукта.
+                    </p>
+                </div>
+
+                <div class="compact-results">
+                    <div class="result-metric">
+                        <span class="result-label">БЮДЖЕТ</span>
+                        <span id="final-budget" class="result-value">1 000 000 ₽</span>
+                    </div>
+                    <div class="result-metric">
+                        <span class="result-label">АТМОСФЕРА</span>
+                        <span id="final-atmosphere" class="result-value">75%</span>
+                    </div>
+                    <div class="result-metric">
+                        <span class="result-label">КАЧЕСТВО</span>
+                        <span id="final-quality" class="result-value">80%</span>
+                    </div>
+                </div>
+
+                <div class="result-quote">
+                    <div class="quote-text">"Хороший руководитель — не тот, кто избегает проблем, а тот, кто эффективно их решает."</div>
+                </div>
+
+                <div class="result-actions">
+                    <button id="play-again-btn" class="btn btn-primary pixel-btn">
+                        <span class="btn-text">НОВАЯ ИГРА</span>
+                    </button>
+                    <button id="back-to-menu-btn" class="btn btn-secondary pixel-btn">
+                        <span class="btn-text">ГЛАВНОЕ МЕНЮ</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ЭКРАН 5: Провал -->
+        <section id="fail-screen" class="game-screen">
+            <div class="screen-content result-content fail-content">
+                <div class="result-header">
+                    <h2 class="result-title">💥 ПРОЕКТ ОСТАНОВЛЕН</h2>
+                    <h3 id="fail-title" class="player-title">БАНКРОТСТВО</h3>
+                </div>
+
+                <div class="result-description">
+                    <p id="fail-description">
+                        Проект убыточен. Бюджет исчерпан. Критическая ситуация не позволяет продолжать работу.
+                    </p>
+                </div>
+
+                <div class="compact-results">
+                    <div class="result-metric">
+                        <span class="result-label">БЮДЖЕТ</span>
+                        <span id="fail-budget" class="result-value">0 ₽</span>
+                    </div>
+                    <div class="result-metric">
+                        <span class="result-label">АТМОСФЕРА</span>
+                        <span id="fail-atmosphere" class="result-value">50%</span>
+                    </div>
+                    <div class="result-metric">
+                        <span class="result-label">КАЧЕСТВО</span>
+                        <span id="fail-quality" class="result-value">65%</span>
+                    </div>
+                </div>
+
+                <div class="fail-details" id="fail-details">
+                    <h4>ПРИЧИНА ОСТАНОВКИ</h4>
+                    <p>Не удалось сохранить баланс критических показателей. Проект требует пересмотра стратегии.</p>
+                </div>
+
+                <div class="result-quote">
+                    <div class="quote-text">"Неудача — это возможность начать заново, но уже более мудро."</div>
+                </div>
+
+                <div class="result-actions">
+                    <button id="restart-fail-btn" class="btn btn-primary pixel-btn">
+                        <span class="btn-text">НАЧАТЬ ЗАНОВО</span>
+                    </button>
+                    <button id="menu-from-fail-btn" class="btn btn-secondary pixel-btn">
+                        <span class="btn-text">ГЛАВНОЕ МЕНЮ</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+        <!-- ЭКРАН 6: Рейтинг -->
+        <section id="leaderboard-screen" class="game-screen">
+            <div class="screen-content result-content">
+                <div class="result-header">
+                    <h2 class="result-title">🏆 ТАБЛИЦА РЕКОРДОВ</h2>
+                    <div class="pixel-divider"></div>
+                </div>
+
+                <div class="leaderboard-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">Игроков всего:</span>
+                        <span id="total-players" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Средний счёт:</span>
+                        <span id="average-score" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">Рекорд:</span>
+                        <span id="top-score" class="stat-value">0</span>
+                    </div>
+                </div>
+
+                <div class="leaderboard-container">
+                    <div class="leaderboard-header">
+                        <span class="header-rank">#</span>
+                        <span class="header-name">ИГРОК</span>
+                        <span class="header-score">ОЧКИ</span>
+                        <span class="header-date">ДАТА</span>
+                    </div>
+                    
+                    <div id="leaderboard-list" class="leaderboard-list">
+                        <div class="loading-scores">
+                            <div class="loading-spinner"></div>
+                            <div>Загрузка рекордов...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="result-quote">
+                    <div class="quote-text">"Великие лидеры создают больше лидеров, а не последователей."</div>
+                </div>
+
+                <div class="result-actions">
+                    <button id="play-again-leaderboard" class="btn btn-primary pixel-btn">
+                        <span class="btn-text">НОВАЯ ИГРА</span>
+                    </button>
+                    <button id="back-to-menu-lb" class="btn btn-secondary pixel-btn">
+                        <span class="btn-text">ГЛАВНОЕ МЕНЮ</span>
+                    </button>
+                    <button id="refresh-leaderboard" class="btn btn-secondary pixel-btn">
+                        <span class="btn-text">ОБНОВИТЬ</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Скрипты -->
+    <script src="leaderboard.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
+  
