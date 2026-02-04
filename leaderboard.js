@@ -1,302 +1,308 @@
 // ============================
-// LEADERBOARD SYSTEM (Simplified)
+// LEADERBOARD SYSTEM (GitHub Pages + Google Sheets)
 // ============================
 
 const Leaderboard = {
     config: {
-        // ЗАМЕНИТЕ НА ВАШ URL Google Apps Script
-        apiUrl: 'https://script.google.com/macros/s/AKfycbx1234567890ABCDEFG/exec',
-        // ЗАМЕНИТЕ НА ВАШ СЕКРЕТНЫЙ КЛЮЧ
-        apiKey: 'game_secret_key_2024',
-        useLocalStorage: true // Фолбэк на localStorage
+        apiUrl: 'https://script.google.com/macros/s/ВАШ_APP_SCRIPT_ID/exec',
+        apiKey: 'ВАШ_СЕКРЕТНЫЙ_КЛЮЧ',
+        cacheTime: 30000 // 30 секунд
     },
     
+    // Состояние
     state: {
         isOnline: false,
-        scores: [],
+        lastUpdate: 0,
+        cache: null,
         stats: null
     },
     
     // Инициализация
-    init: function() {
+    init: async function() {
         console.log('Инициализация рейтинга...');
         
-        // Всегда используем localStorage как запасной вариант
-        this.loadLocalScores();
+        try {
+            // Проверяем соединение
+            await this.checkConnection();
+            
+            if (this.state.isOnline) {
+                console.log('Рейтинг онлайн, API доступен');
+                this.showOnlineStatus();
+            } else {
+                console.log('Рейтинг оффлайн, используем локальное хранилище');
+                this.showOfflineStatus();
+            }
+            
+            // Загружаем статистику
+            await this.loadStats();
+            
+        } catch (error) {
+            console.error('Ошибка инициализации рейтинга:', error);
+            this.state.isOnline = false;
+        }
         
-        // Пытаемся проверить онлайн-соединение
-        this.checkConnection();
-        
-        return true;
+        return this.state.isOnline;
     },
     
-    // Проверка соединения (упрощенная)
+    // Проверка соединения
     checkConnection: async function() {
         try {
-            const testUrl = `${this.config.apiUrl}?action=test&apiKey=${this.config.apiKey}`;
-            const response = await fetch(testUrl, {
+            const response = await fetch(`${this.config.apiUrl}?action=getStats&apiKey=${this.config.apiKey}`, {
+                method: 'GET',
                 mode: 'no-cors'
             });
             
             this.state.isOnline = true;
-            console.log('✅ Рейтинг онлайн');
-            
-            // Показываем статус
-            this.showStatus('✅ Онлайн-рейтинг доступен');
-            
+            return true;
         } catch (error) {
+            console.log('Оффлайн режим рейтинга');
             this.state.isOnline = false;
-            console.log('⚠️ Рейтинг оффлайн, используем localStorage');
-            this.showStatus('⚠️ Оффлайн-режим');
+            return false;
         }
     },
     
     // Сохранить результат
     saveScore: async function(playerData) {
-        console.log('Сохранение результата:', playerData);
+        // Локальное сохранение
+        this.saveToLocal(playerData);
         
-        // 1. Всегда сохраняем локально
-        const localResult = this.saveToLocal(playerData);
-        
-        // 2. Пытаемся сохранить онлайн
-        if (this.state.isOnline) {
-            try {
-                const onlineResult = await this.saveToOnline(playerData);
-                
-                if (onlineResult.success) {
-                    return {
-                        success: true,
-                        message: '🏆 Рекорд сохранен в таблице лидеров!',
-                        position: onlineResult.position,
-                        isOnline: true
-                    };
-                }
-            } catch (error) {
-                console.error('Ошибка онлайн-сохранения:', error);
-            }
+        if (!this.state.isOnline) {
+            return {
+                success: false,
+                message: 'Оффлайн. Рекорд сохранен локально',
+                position: 0
+            };
         }
         
-        // 3. Возвращаем локальный результат
-        return {
-            success: true,
-            message: '💾 Рекорд сохранен локально (оффлайн)',
-            position: localResult.position,
-            isOnline: false
-        };
-    },
-    
-    // Сохранить онлайн
-    saveToOnline: async function(playerData) {
-        if (!this.state.isOnline) return null;
-        
         try {
-            // Формируем URL с параметрами
-            const params = new URLSearchParams({
+            const data = {
                 action: 'saveScore',
                 apiKey: this.config.apiKey,
-                name: playerData.name.substring(0, 15),
-                score: playerData.score,
-                rank: playerData.rank || 'AAA',
-                budget: playerData.budget || 0,
-                atmosphere: playerData.atmosphere || 0,
-                quality: playerData.quality || 0,
-                timestamp: Date.now(),
-                ip: 'github_pages'
-            });
-            
-            const url = `${this.config.apiUrl}?${params.toString()}`;
-            console.log('Отправка запроса:', url);
-            
-            // Используем fetch с mode 'no-cors' для обхода ограничений
-            const response = await fetch(url, {
-                method: 'GET',
-                mode: 'no-cors'
-            });
-            
-            // При mode 'no-cors' мы не можем прочитать ответ, но запрос отправлен
-            console.log('Запрос отправлен (no-cors mode)');
-            
-            // Обновляем кэш
-            setTimeout(() => {
-                this.loadOnlineScores();
-            }, 1000);
-            
-            return {
-                success: true,
-                position: 1
+                ...playerData,
+                timestamp: Date.now()
             };
             
+            // Отправляем на сервер
+            const response = await this.sendRequest('saveScore', data);
+            
+            if (response && response.success) {
+                console.log('Рекорд сохранен онлайн! Позиция:', response.position);
+                
+                // Обновляем кэш
+                this.state.cache = null;
+                await this.loadScores();
+                
+                return {
+                    success: true,
+                    message: '🏆 Рекорд в таблице лидеров!',
+                    position: response.position
+                };
+            }
         } catch (error) {
-            console.error('Ошибка сохранения онлайн:', error);
-            throw error;
+            console.error('Ошибка сохранения рекорда:', error);
         }
-    },
-    
-    // Сохранить локально
-    saveToLocal: function(playerData) {
-        const scores = this.getLocalScores();
-        
-        const entry = {
-            ...playerData,
-            date: new Date().toLocaleDateString('ru-RU'),
-            timestamp: Date.now(),
-            source: 'local'
-        };
-        
-        scores.push(entry);
-        
-        // Сортировка по очкам
-        scores.sort((a, b) => b.score - a.score);
-        
-        // Ограничиваем до 100 записей
-        const topScores = scores.slice(0, 100);
-        
-        // Сохраняем в localStorage
-        try {
-            localStorage.setItem('project_triage_leaderboard', JSON.stringify(topScores));
-            console.log('✅ Рекорд сохранен локально');
-        } catch (error) {
-            console.error('❌ Ошибка localStorage:', error);
-        }
-        
-        // Находим позицию
-        const position = scores.findIndex(s => s.score <= entry.score) + 1;
         
         return {
-            success: true,
-            position: position || scores.length
+            success: false,
+            message: 'Ошибка сохранения рекорда',
+            position: 0
         };
     },
     
     // Получить рекорды
     getScores: async function(limit = 100) {
-        // Сначала пытаемся загрузить онлайн
-        if (this.state.isOnline) {
-            try {
-                await this.loadOnlineScores();
-                
-                // Сортируем онлайн-рекорды
-                this.state.scores.sort((a, b) => b.score - a.score);
-                return this.state.scores.slice(0, limit);
-            } catch (error) {
-                console.log('Используем локальные рекорды');
-            }
+        // Используем кэш, если он актуален
+        if (this.state.cache && Date.now() - this.state.lastUpdate < this.config.cacheTime) {
+            return this.state.cache.slice(0, limit);
         }
         
-        // Возвращаем локальные
-        return this.getLocalScores().slice(0, limit);
-    },
-    
-    // Загрузить онлайн-рекорды
-    loadOnlineScores: async function() {
-        if (!this.state.isOnline) return;
+        if (!this.state.isOnline) {
+            return this.getLocalScores().slice(0, limit);
+        }
         
         try {
-            const url = `${this.config.apiUrl}?action=getScores&apiKey=${this.config.apiKey}&limit=100&_=${Date.now()}`;
+            const scores = await this.loadScores(limit);
+            this.state.cache = scores;
+            this.state.lastUpdate = Date.now();
+            return scores;
+        } catch (error) {
+            console.error('Ошибка загрузки рекордов:', error);
+            return this.getLocalScores().slice(0, limit);
+        }
+    },
+    
+    // Загрузить рекорды с сервера
+    loadScores: async function(limit = 100) {
+        if (!this.state.isOnline) return [];
+        
+        try {
+            const url = `${this.config.apiUrl}?action=getScores&apiKey=${this.config.apiKey}&limit=${limit}&_=${Date.now()}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) throw new Error('Network error');
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                return data.scores || [];
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки рекордов:', error);
+            this.state.isOnline = false;
+        }
+        
+        return [];
+    },
+    
+    // Загрузить статистику
+    loadStats: async function() {
+        if (!this.state.isOnline) {
+            const localScores = this.getLocalScores();
+            this.state.stats = {
+                totalPlayers: localScores.length,
+                averageScore: localScores.length > 0 ? 
+                    Math.round(localScores.reduce((a, b) => a + b.score, 0) / localScores.length) : 0,
+                topScore: localScores.length > 0 ? Math.max(...localScores.map(s => s.score)) : 0
+            };
+            return;
+        }
+        
+        try {
+            const url = `${this.config.apiUrl}?action=getStats&apiKey=${this.config.apiKey}&_=${Date.now()}`;
             const response = await fetch(url);
             
             if (response.ok) {
                 const data = await response.json();
                 if (data.success) {
-                    this.state.scores = data.scores || [];
-                    console.log(`Загружено ${this.state.scores.length} онлайн-рекордов`);
+                    this.state.stats = data;
                 }
             }
         } catch (error) {
-            console.error('Ошибка загрузки онлайн-рекордов:', error);
+            console.error('Ошибка загрузки статистики:', error);
         }
     },
     
-    // Загрузить локальные рекорды
-    loadLocalScores: function() {
-        try {
-            const data = localStorage.getItem('project_triage_leaderboard');
-            this.state.scores = data ? JSON.parse(data) : [];
-            console.log(`Загружено ${this.state.scores.length} локальных рекордов`);
-        } catch (error) {
-            this.state.scores = [];
-        }
-    },
-    
-    // Получить локальные рекорды
-    getLocalScores: function() {
-        return this.state.scores;
-    },
-    
-    // Загрузить статистику
-    loadStats: async function() {
-        // Простая статистика из локальных данных
+    // Локальное хранение
+    saveToLocal: function(playerData) {
         const scores = this.getLocalScores();
+        scores.push({
+            ...playerData,
+            timestamp: Date.now(),
+            source: 'local'
+        });
         
-        this.state.stats = {
-            totalPlayers: scores.length,
-            averageScore: scores.length > 0 ? 
-                Math.round(scores.reduce((sum, s) => sum + s.score, 0) / scores.length) : 0,
-            topScore: scores.length > 0 ? Math.max(...scores.map(s => s.score)) : 0
-        };
+        // Сортировка
+        scores.sort((a, b) => b.score - a.score);
+        
+        // Сохраняем только топ-50
+        const topScores = scores.slice(0, 50);
+        
+        try {
+            localStorage.setItem('game_leaderboard_local', JSON.stringify(topScores));
+        } catch (error) {
+            console.error('Ошибка локального сохранения:', error);
+        }
+    },
+    
+    getLocalScores: function() {
+        try {
+            const data = localStorage.getItem('game_leaderboard_local');
+            return data ? JSON.parse(data) : [];
+        } catch (error) {
+            return [];
+        }
+    },
+    
+    clearLocal: function() {
+        localStorage.removeItem('game_leaderboard_local');
+        this.state.cache = null;
+    },
+    
+    // Отправить запрос
+    sendRequest: async function(action, data) {
+        if (!this.state.isOnline) return null;
+        
+        try {
+            const formData = new FormData();
+            formData.append('action', action);
+            formData.append('apiKey', this.config.apiKey);
+            formData.append('data', JSON.stringify(data));
+            
+            const response = await fetch(this.config.apiUrl, {
+                method: 'POST',
+                body: formData,
+                mode: 'cors'
+            });
+            
+            return await response.json();
+        } catch (error) {
+            console.error('Ошибка запроса:', error);
+            return null;
+        }
     },
     
     // Рассчитать очки
     calculateScore: function(gameState, finalRank) {
         let score = 0;
         
-        // Базовые очки
-        score += Math.round(gameState.budget / 1000); // 1 очко за каждые 1000₽
-        score += gameState.atmosphere * 10; // 10 очков за каждый %
-        score += gameState.quality * 10; // 10 очков за каждый %
+        // Бюджетные очки
+        if (gameState.budget > 800000) score += 1000;
+        else if (gameState.budget > 600000) score += 800;
+        else if (gameState.budget > 400000) score += 600;
+        else if (gameState.budget > 200000) score += 400;
+        else if (gameState.budget > 100000) score += 200;
+        else score += 100;
         
-        // Множитель ранга
-        const multipliers = {
-            'AAA': 2.0, 'AAB': 1.8, 'ABA': 1.8, 'BAA': 1.8,
-            'BBB': 1.5, 'BBC': 1.3, 'BCB': 1.3, 'CBB': 1.3,
-            'CCC': 1.2, 'CCD': 1.1, 'CDC': 1.1, 'DCC': 1.1,
-            'DDD': 1.0
+        // Атмосфера
+        score += Math.round(gameState.atmosphere * 10);
+        
+        // Качество
+        score += Math.round(gameState.quality * 10);
+        
+        // Бонус за ранг
+        const rankMultiplier = {
+            'AAA': 3.0, 'AAB': 2.8, 'ABA': 2.8, 'BAA': 2.8,
+            'BBB': 2.5, 'BBC': 2.3, 'BCB': 2.3, 'CBB': 2.3,
+            'CCC': 2.0, 'CCD': 1.8, 'CDC': 1.8, 'DCC': 1.8,
+            'DDD': 1.5
         };
         
-        score = Math.round(score * (multipliers[finalRank] || 1.0));
+        score = Math.round(score * (rankMultiplier[finalRank] || 1.5));
         
         // Бонус за завершение всех ситуаций
-        if (gameState.currentSituation >= 15) {
-            score += 5000;
+        if (gameState.currentSituation > 14) {
+            score += 1000;
         }
         
         return score;
     },
     
     // Показать статус
-    showStatus: function(message) {
-        const statusElement = document.getElementById('leaderboard-status');
-        if (!statusElement) return;
-        
-        statusElement.textContent = message;
-        statusElement.className = 'leaderboard-status ' + 
-            (this.state.isOnline ? 'status-online' : 'status-offline');
-        statusElement.style.display = 'block';
-        
-        // Автоскрытие через 5 секунд
-        setTimeout(() => {
-            statusElement.style.display = 'none';
-        }, 5000);
+    showOnlineStatus: function() {
+        this.showNotification('✅ Онлайн-рейтинг доступен', 'online');
     },
     
-    // Показать уведомление
+    showOfflineStatus: function() {
+        this.showNotification('⚠️ Оффлайн-режим. Рекорды сохраняются локально', 'offline');
+    },
+    
     showNotification: function(message, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `leaderboard-notification ${type}`;
         notification.textContent = message;
         notification.style.cssText = `
             position: fixed;
-            bottom: 20px;
+            top: 20px;
             right: 20px;
             padding: 12px 20px;
-            background: ${type === 'success' ? 'rgba(0, 212, 138, 0.15)' : 'rgba(255, 210, 0, 0.15)'};
-            border: 2px solid ${type === 'success' ? '#00D48A' : '#FFD200'};
+            background: ${type === 'online' ? 'rgba(0, 212, 138, 0.15)' : 'rgba(255, 210, 0, 0.15)'};
+            border: 2px solid ${type === 'online' ? '#00D48A' : '#FFD200'};
             border-radius: 6px;
             font-family: 'Press Start 2P', monospace;
             font-size: 11px;
             z-index: 10000;
             animation: slideIn 0.3s ease;
-            box-shadow: 0 0 12px ${type === 'success' ? 'rgba(0, 212, 138, 0.5)' : 'rgba(255, 210, 0, 0.5)'};
+            box-shadow: 0 0 12px ${type === 'online' ? 'rgba(0, 212, 138, 0.5)' : 'rgba(255, 210, 0, 0.5)'};
             max-width: 300px;
             text-align: center;
         `;
