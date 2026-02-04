@@ -726,22 +726,28 @@ function showFailScreen() {
             break;
     }
     
-    const failTitleElement = document.getElementById('fail-title');
-    const failDescriptionElement = document.getElementById('fail-description');
-    const failBudgetElement = document.getElementById('fail-budget');
-    const failAtmosphereElement = document.getElementById('fail-atmosphere');
-    const failQualityElement = document.getElementById('fail-quality');
-    const failDetailsElement = document.getElementById('fail-details');
+    // Сохраняем данные о провале
+    const failData = {
+        title: failTitle,
+        description: failDescription,
+        details: failDetails,
+        budget: gameState.budget,
+        atmosphere: gameState.atmosphere,
+        quality: gameState.quality,
+        isFail: true
+    };
     
-    if (failTitleElement) failTitleElement.textContent = failTitle;
-    if (failDescriptionElement) failDescriptionElement.textContent = failDescription;
-    if (failBudgetElement) failBudgetElement.textContent = `${gameState.budget.toLocaleString('ru-RU')} ₽`;
-    if (failAtmosphereElement) failAtmosphereElement.textContent = gameState.atmosphere + '%';
-    if (failQualityElement) failQualityElement.textContent = gameState.quality + '%';
-    if (failDetailsElement) failDetailsElement.innerHTML = failDetails;
+    sessionStorage.setItem('last_game_result', JSON.stringify(failData));
     
-    switchScreen('fail-screen');
-}
+    // Сохраняем результат в рейтинг (даже при провале)
+    saveGameResultToLeaderboard();
+    
+    // ПОСЛЕ ПРОВАЛА ТОЖЕ ПЕРЕХОДИМ НА РЕЙТИНГ
+    setTimeout(() => {
+        showLeaderboard();
+    }, 500);
+};
+
 
 function endGame() {
     console.log('Завершение игры');
@@ -871,23 +877,21 @@ function savePlayerNameAndStart() {
     const name = input.value.trim();
     
     if (name.length === 0) {
-        alert('Пожалуйста, введите имя!');
+        showNotification('Пожалуйста, введите имя!', 'warning');
         return;
     }
     
     if (name.length > 15) {
-        alert('Имя не должно превышать 15 символов!');
+        showNotification('Имя не должно превышать 15 символов!', 'warning');
         return;
     }
     
     playerName = name;
     
-    // Сохраняем имя локально
-    localStorage.setItem('player_name', name);
+    // НЕ сохраняем в localStorage - каждый раз новое имя
+    console.log('Имя игрока установлено:', playerName);
     
-    console.log('Имя игрока сохранено:', playerName);
-    
-    // Начинаем игру
+    // Начинаем новую игру
     startNewGame();
 }
 
@@ -904,6 +908,29 @@ async function showLeaderboard() {
                 <div>Загрузка рекордов...</div>
             </div>
         `;
+    }
+    
+    // Показываем последний результат игрока, если есть
+    const lastResult = sessionStorage.getItem('last_game_result');
+    const lastResultElement = document.getElementById('last-result-summary');
+    
+    if (lastResult && lastResultElement) {
+        const resultData = JSON.parse(lastResult);
+        
+        if (resultData.isFail) {
+            // Это провал
+            document.getElementById('last-score').textContent = '0';
+            document.getElementById('last-rank').textContent = 'ПРОВАЛ';
+            document.getElementById('last-rank').style.color = 'var(--primary-red)';
+        } else {
+            // Это успешное завершение
+            const score = Leaderboard.calculateScore(gameState, resultData.finalRank);
+            document.getElementById('last-score').textContent = score.toLocaleString('ru-RU');
+            document.getElementById('last-rank').textContent = resultData.finalRank;
+            document.getElementById('last-rank').style.color = 'var(--primary-yellow)';
+        }
+        
+        lastResultElement.style.display = 'block';
     }
     
     try {
@@ -937,7 +964,7 @@ async function showLeaderboard() {
             let html = '';
             
             scores.forEach((entry, index) => {
-                const isCurrent = entry.name === playerName;
+                const isCurrent = entry.name === playerName && entry.score === playerScore;
                 
                 html += `
                     <div class="leaderboard-entry ${isCurrent ? 'current-player' : ''}">
@@ -1025,7 +1052,6 @@ function showNotification(message, type = 'info') {
     }, 3000);
 }
 
-// Обновите функцию endGame()
 function endGame() {
     console.log('Завершение игры');
     
@@ -1050,59 +1076,95 @@ function endGame() {
     const finalRank = budgetRank + atmosphereRank + qualityRank;
     playerRank = finalRank;
     
-    // ... остальной код определения звания и описания ...
+    // Определяем звание
+    let title = "", description = "";
+    
+    if (finalRank === "AAA") {
+        title = "ЛЕГЕНДАРНЫЙ ЛИДЕР";
+        description = "Ты прошёл через все трудности и вышел невредимым! Идеальный баланс между бюджетом, командой и качеством. Тебя уважают, тебе доверяют, тебе подражают.";
+    } else if (["AAB", "ABA", "BAA"].includes(finalRank)) {
+        title = "НАДЁЖНЫЙ УПРАВЛЕНЕЦ";
+        description = "Проект выполнен отлично! Две из трёх метрик на высоте. Команда довольна, клиенты счастливы, начальство предлагает повышение.";
+    } else if (["BBB", "BBC", "BCB", "CBB"].includes(finalRank)) {
+        title = "БАЛАНСИР";
+        description = "Ты постоянно жертвовал чем-то ради чего-то, но довёл дело до конца. Стандартный реалист в мире управления проектами.";
+    } else if (["CDD", "DCD", "DDC"].includes(finalRank)) {
+        title = "СПАСАТЕЛЬ";
+        description = "Ты вытащил проект с самого дна. Он жив, но шрамы остались на всех. Задача выполнена, но ценой больших потерь.";
+    } else if (gameState.atmosphere <= 25 && (gameState.budget > 600000 || gameState.quality > 70)) {
+        title = "ДИКТАТОР";
+        description = "Продукт вышел, деньги сэкономлены, но команда тебя ненавидит. Краткосрочный успех обернулся долгосрочными проблемами.";
+    } else if (gameState.atmosphere > 85 && (gameState.budget < 300000 || gameState.quality < 50)) {
+        title = "ДУША КОМПАНИИ";
+        description = "Все тебя обожают, но проект едва жив и клиент недоволен. Хорошая атмосфера, к сожалению, не компенсирует плохие результаты.";
+    } else {
+        title = "РУКОВОДИТЕЛЬ ПРОЕКТА";
+        description = "Ты довёл проект до конца. Есть над чем работать, но этот опыт бесценен. Каждый следующий проект будет лучше.";
+    }
+    
+    // Сохраняем финальные данные
+    const finalData = {
+        title: title,
+        description: description,
+        finalRank: finalRank,
+        budget: gameState.budget,
+        atmosphere: gameState.atmosphere,
+        quality: gameState.quality
+    };
+    
+    // Временно сохраняем в sessionStorage для показа на экране рейтинга
+    sessionStorage.setItem('last_game_result', JSON.stringify(finalData));
     
     // Сохраняем результат в рейтинг
     saveGameResultToLeaderboard();
     
-    // Переключаем на экран победы
-    switchScreen('win-screen');
+    // ПОСЛЕ СОХРАНЕНИЯ РЕЗУЛЬТАТА, ПЕРЕХОДИМ НА ЭКРАН РЕЙТИНГА
+    setTimeout(() => {
+        showLeaderboard();
+    }, 500);
+    
     console.log('Игра завершена, итоговый ранг:', finalRank);
 }
 
 // Обновите DOMContentLoaded:
+// ============================
+// ИНИЦИАЛИЗАЦИЯ И НОВАЯ ЛОГИКА ЗАПУСКА
+// ============================
+
 document.addEventListener('DOMContentLoaded', async function() {
     console.log('DOM загружен, инициализация игры...');
     
     // Инициализируем пиксельный курсор
     initPixelCursor();
     
-    // Инициализируем рейтинг
+    // Инициализируем систему рейтинга
     await Leaderboard.init();
     
-    // Загружаем сохраненное имя
-    const savedName = localStorage.getItem('player_name');
-    if (savedName) {
-        playerName = savedName;
-    }
+    // НЕ загружаем сохраненное имя - каждый раз новый игрок
+    // Сбрасываем имя игрока
+    playerName = '';
+    playerScore = 0;
+    playerRank = 'AAA';
     
-    // Инициализация игры
+    // Инициализация метрик
     updateMetricsDisplay();
     
-    // Обработчики событий
+    // ОБРАБОТЧИКИ СОБЫТИЙ ДЛЯ СТАРТОВОГО ЭКРАНА
     const startBtn = document.getElementById('start-game-btn');
     if (startBtn) {
         startBtn.addEventListener('click', () => {
-            console.log('Кнопка "Начать игру" нажата');
-            
-            if (playerName) {
-                startNewGame();
-            } else {
-                showNameScreen();
-            }
+            console.log('Нажата кнопка "Начать игру"');
+            showNameScreen(); // Всегда показываем экран ввода имени
         });
     }
     
-    const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
-    if (showLeaderboardBtn) {
-        showLeaderboardBtn.addEventListener('click', showLeaderboard);
-    }
-    
+    // ОБРАБОТЧИК ДЛЯ СОХРАНЕНИЯ ИМЕНИ И НАЧАЛА ИГРЫ
     const saveNameBtn = document.getElementById('save-name-btn');
     if (saveNameBtn) {
         saveNameBtn.addEventListener('click', savePlayerNameAndStart);
     }
     
+    // ОБРАБОТЧИК ДЛЯ ВВОДА ИМЕНИ ПО НАЖАТИЮ ENTER
     const playerNameInput = document.getElementById('player-name');
     if (playerNameInput) {
         playerNameInput.addEventListener('keypress', (e) => {
@@ -1112,6 +1174,7 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
     
+    // ОБРАБОТЧИКИ ДЛЯ КНОПОК ВОЗВРАТА В МЕНЮ
     const backToMenuBtn = document.getElementById('back-to-menu-btn');
     if (backToMenuBtn) {
         backToMenuBtn.addEventListener('click', () => {
@@ -1126,88 +1189,59 @@ document.addEventListener('DOMContentLoaded', async function() {
         });
     }
     
+    const menuFromFailBtn = document.getElementById('menu-from-fail-btn');
+    if (menuFromFailBtn) {
+        menuFromFailBtn.addEventListener('click', () => {
+            switchScreen('start-screen');
+        });
+    }
+    
+    // ОБРАБОТЧИКИ ДЛЯ ИГРОВОГО ПРОЦЕССА
+    const nextSituationBtn = document.getElementById('next-situation-btn');
+    if (nextSituationBtn) {
+        nextSituationBtn.addEventListener('click', nextSituation);
+    }
+    
     const refreshLeaderboardBtn = document.getElementById('refresh-leaderboard');
     if (refreshLeaderboardBtn) {
         refreshLeaderboardBtn.addEventListener('click', showLeaderboard);
     }
     
-    const playAgainLeaderboardBtn = document.getElementById('play-again-leaderboard');
-    if (playAgainLeaderboardBtn) {
-        playAgainLeaderboardBtn.addEventListener('click', () => {
-            if (playerName) {
-                startNewGame();
-            } else {
-                showNameScreen();
-            }
-        });
-    }
-    
-    // ... остальные существующие обработчики ...
-    
-    // Показываем стартовый экран
-    switchScreen('start-screen');
-    console.log('Игра инициализирована');
-});
-// ============================
-// ИНИЦИАЛИЗАЦИЯ ИГРЫ
-// ============================
-
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM загружен, инициализация игры...');
-    
-    // Инициализируем пиксельный курсор ПЕРВЫМ делом
-    initPixelCursor();
-    
-    // Инициализация игры
-    updateMetricsDisplay();
-    
-    // Обработчики событий
-    const startBtn = document.getElementById('start-game-btn');
-    if (startBtn) {
-        startBtn.addEventListener('click', () => {
-            console.log('Кнопка "Начать проект" нажата');
-            startNewGame();
-        });
-        console.log('Обработчик для start-game-btn установлен');
-    } else {
-        console.error('Кнопка "start-game-btn" не найдена!');
-    }
-    
-    const nextSituationBtn = document.getElementById('next-situation-btn');
-    if (nextSituationBtn) {
-        nextSituationBtn.addEventListener('click', nextSituation);
-        console.log('Обработчик для next-situation-btn установлен');
-    }
-    
+    // ОБРАБОТЧИКИ ДЛЯ НОВОЙ ИГРЫ (после завершения)
     const playAgainBtn = document.getElementById('play-again-btn');
     if (playAgainBtn) {
-        playAgainBtn.addEventListener('click', startNewGame);
-        console.log('Обработчик для play-again-btn установлен');
+        playAgainBtn.addEventListener('click', () => {
+            // Всегда начинаем с ввода имени
+            playerName = '';
+            showNameScreen();
+        });
     }
     
     const restartFailBtn = document.getElementById('restart-fail-btn');
     if (restartFailBtn) {
-        restartFailBtn.addEventListener('click', startNewGame);
-        console.log('Обработчик для restart-fail-btn установлен');
-    }
-    
-    const backToMenuBtn = document.getElementById('back-to-menu-btn');
-    if (backToMenuBtn) {
-        backToMenuBtn.addEventListener('click', () => {
-            console.log('Возврат в главное меню');
-            switchScreen('start-screen');
+        restartFailBtn.addEventListener('click', () => {
+            // Всегда начинаем с ввода имени
+            playerName = '';
+            showNameScreen();
         });
     }
     
-    const menuFromFailBtn = document.getElementById('menu-from-fail-btn');
-    if (menuFromFailBtn) {
-        menuFromFailBtn.addEventListener('click', () => {
-            console.log('Возврат в главное меню из провала');
-            switchScreen('start-screen');
+    const playAgainLeaderboardBtn = document.getElementById('play-again-leaderboard');
+    if (playAgainLeaderboardBtn) {
+        playAgainLeaderboardBtn.addEventListener('click', () => {
+            // Всегда начинаем с ввода имени
+            playerName = '';
+            showNameScreen();
         });
     }
     
-    // Показываем стартовый экран
+    // ОБРАБОТЧИК ДЛЯ КНОПКИ "РЕЙТИНГ" НА СТАРТОВОМ ЭКРАНЕ
+    const showLeaderboardBtn = document.getElementById('show-leaderboard-btn');
+    if (showLeaderboardBtn) {
+        showLeaderboardBtn.addEventListener('click', showLeaderboard);
+    }
+    
+    // ПОКАЗЫВАЕМ СТАРТОВЫЙ ЭКРАН
     switchScreen('start-screen');
     console.log('Игра инициализирована, стартовый экран показан');
 });

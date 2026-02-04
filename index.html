@@ -79,6 +79,14 @@
                     </div>
                     <div class="hint-text">Используй мышь с пиксельным курсором для выбора</div>
                 </div>
+                <div class="cta-section">
+                    <div class="btn-container">
+                              <button id="show-leaderboard-btn" class="btn btn-secondary btn-large pixel-btn" style="margin-left: 20px;">
+                                <span class="btn-text">РЕЙТИНГ</span>
+                        </button>
+                </div>
+    <div class="hint-text">Используй мышь с пиксельным курсором для выбора</div>
+</div>
             </div>
         </section>
 
@@ -356,7 +364,20 @@
                         <span id="top-score" class="stat-value">0</span>
                     </div>
                 </div>
-
+                <!-- Внутри #leaderboard-screen, после .leaderboard-stats добавьте: -->
+<div id="last-result-summary" class="last-result" style="display: none; margin: 20px 0; padding: 15px; background: var(--bg-panel); border: 2px solid var(--primary-green); border-radius: 8px;">
+    <h4 style="color: var(--primary-green); font-family: var(--font-pixel); margin-bottom: 10px;">ТВОЙ ПОСЛЕДНИЙ РЕЗУЛЬТАТ</h4>
+    <div class="last-result-stats" style="display: flex; justify-content: space-around;">
+        <div class="last-stat">
+            <div style="font-size: 12px; color: var(--text-dim);">Очки:</div>
+            <div id="last-score" style="font-family: var(--font-pixel); color: var(--primary-green); font-size: 18px;">0</div>
+        </div>
+        <div class="last-stat">
+            <div style="font-size: 12px; color: var(--text-dim);">Ранг:</div>
+            <div id="last-rank" style="font-family: var(--font-pixel); color: var(--primary-yellow); font-size: 18px;">AAA</div>
+        </div>
+    </div>
+</div>
                 <div class="leaderboard-container">
                     <div class="leaderboard-header">
                         <span class="header-rank">#</span>
