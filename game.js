@@ -743,7 +743,7 @@ function showFailScreen() {
     // ПОСЛЕ ПРОВАЛА ТОЖЕ ПЕРЕХОДИМ НА РЕЙТИНГ
     setTimeout(() => {
         showLeaderboard();
-    }, 7000);
+    }, 10000);
 };
 
 
@@ -1221,7 +1221,7 @@ function endGame() {
     // ПОСЛЕ СОХРАНЕНИЯ РЕЗУЛЬТАТА, ПЕРЕХОДИМ НА ЭКРАН РЕЙТИНГА
     setTimeout(() => {
         showLeaderboard();
-    }, 7000);
+    }, 10000);
     
     console.log('Игра завершена, итоговый ранг:', finalRank);
 }
