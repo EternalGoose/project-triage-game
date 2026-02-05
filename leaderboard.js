@@ -5,9 +5,9 @@
 const Leaderboard = {
     config: {
         // ЗАМЕНИТЕ НА ВАШ URL Google Apps Script
-        apiUrl: 'https://script.google.com/macros/s/AKfycbx1234567890ABCDEFG/exec',
+        apiUrl: 'https://script.google.com/macros/s/AKfycbz7EGk06M2K_kYhZTwfBzmUa5icFHeeu23-g6sfyReMmdivc9E3nQCPL7sZZ0fdlWJU/exec',
         // ЗАМЕНИТЕ НА ВАШ СЕКРЕТНЫЙ КЛЮЧ
-        apiKey: 'game_secret_key_2024',
+        apiKey: 'game_leaderboard_2024_secret_key_123',
         useLocalStorage: true // Фолбэк на localStorage
     },
     
