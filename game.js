@@ -574,6 +574,7 @@ function loadSituation(situationId) {
 
 function makeChoice(button, choice) {
     console.log('Выбор сделан:', choice.text);
+    console.log('Состояние ДО применения:', gameState.budget, gameState.atmosphere, gameState.quality);
     
     // Анимация курсора
     const cursor = document.getElementById('pixel-cursor');
@@ -591,6 +592,8 @@ function makeChoice(button, choice) {
     gameState.budget += consequences.budget;
     gameState.atmosphere += consequences.atmosphere;
     gameState.quality += consequences.quality;
+
+    console.log('Состояние ПОСЛЕ применения:', gameState.budget, gameState.atmosphere, gameState.quality);
     
     // Ограничиваем значения
     gameState.budget = Math.min(Math.max(gameState.budget, 0), 1500000);
@@ -670,16 +673,10 @@ function nextSituation() {
     gameState.currentSituation++;
     
     if (gameState.currentSituation > gameState.totalSituations) {
+        console.log('Игра завершена! Вызываем endGame()');
         endGame();
     } else {
         loadSituation(gameState.currentSituation);
-        const situationPanel = document.querySelector('.situation-panel');
-        if (situationPanel) {
-            situationPanel.scrollIntoView({ 
-                behavior: 'smooth', 
-                block: 'start' 
-            });
-        }
     }
 }
 
@@ -749,74 +746,6 @@ function showFailScreen() {
     }, 7000);
 };
 
-
-// function endGame() {
-//     console.log('Завершение игры');
-    
-//     // Определяем итоговую оценку
-//     let budgetRank, atmosphereRank, qualityRank;
-    
-//     if (gameState.budget > 600000) budgetRank = 'A';
-//     else if (gameState.budget > 300000) budgetRank = 'B';
-//     else if (gameState.budget > 100000) budgetRank = 'C';
-//     else budgetRank = 'D';
-    
-//     if (gameState.atmosphere > 70) atmosphereRank = 'A';
-//     else if (gameState.atmosphere > 50) atmosphereRank = 'B';
-//     else if (gameState.atmosphere > 35) atmosphereRank = 'C';
-//     else atmosphereRank = 'D';
-    
-//     if (gameState.quality > 70) qualityRank = 'A';
-//     else if (gameState.quality > 50) qualityRank = 'B';
-//     else if (gameState.quality > 40) qualityRank = 'C';
-//     else qualityRank = 'D';
-    
-//     const finalRank = budgetRank + atmosphereRank + qualityRank;
-    
-//     // Определяем звание
-//     let title = "", description = "";
-    
-//     if (finalRank === "AAA") {
-//         title = "ЛЕГЕНДАРНЫЙ ЛИДЕР";
-//         description = "Ты прошёл через все трудности и вышел невредимым! Идеальный баланс между бюджетом, командой и качеством. Тебя уважают, тебе доверяют, тебе подражают.";
-//     } else if (["AAB", "ABA", "BAA"].includes(finalRank)) {
-//         title = "НАДЁЖНЫЙ УПРАВЛЕНЕЦ";
-//         description = "Проект выполнен отлично! Две из трёх метрик на высоте. Команда довольна, клиенты счастливы, начальство предлагает повышение.";
-//     } else if (["BBB", "BBC", "BCB", "CBB"].includes(finalRank)) {
-//         title = "БАЛАНСИР";
-//         description = "Ты постоянно жертвовал чем-то ради чего-то, но довёл дело до конца. Стандартный реалист в мире управления проектами.";
-//     } else if (["CDD", "DCD", "DDC"].includes(finalRank)) {
-//         title = "СПАСАТЕЛЬ";
-//         description = "Ты вытащил проект с самого дна. Он жив, но шрамы остались на всех. Задача выполнена, но ценой больших потерь.";
-//     } else if (gameState.atmosphere <= 25 && (gameState.budget > 600000 || gameState.quality > 70)) {
-//         title = "ДИКТАТОР";
-//         description = "Продукт вышел, деньги сэкономлены, но команда тебя ненавидит. Краткосрочный успех обернулся долгосрочными проблемами.";
-//     } else if (gameState.atmosphere > 85 && (gameState.budget < 300000 || gameState.quality < 50)) {
-//         title = "ДУША КОМПАНИИ";
-//         description = "Все тебя обожают, но проект едва жив и клиент недоволен. Хорошая атмосфера, к сожалению, не компенсирует плохие результаты.";
-//     } else {
-//         title = "РУКОВОДИТЕЛЬ ПРОЕКТА";
-//         description = "Ты довёл проект до конца. Есть над чем работать, но этот опыт бесценен. Каждый следующий проект будет лучше.";
-//     }
-    
-//     // Заполняем экран победы
-//     const finalRankElement = document.getElementById('final-rank');
-//     const resultTitleElement = document.getElementById('result-player-title');
-//     const resultDescriptionElement = document.getElementById('result-description');
-//     const finalBudgetElement = document.getElementById('final-budget');
-//     const finalAtmosphereElement = document.getElementById('final-atmosphere');
-//     const finalQualityElement = document.getElementById('final-quality');
-    
-//     if (finalRankElement) finalRankElement.textContent = finalRank;
-//     if (resultTitleElement) resultTitleElement.textContent = title;
-//     if (resultDescriptionElement) resultDescriptionElement.textContent = description;
-//     if (finalBudgetElement) finalBudgetElement.textContent = `${gameState.budget.toLocaleString('ru-RU')} ₽`;
-//     if (finalAtmosphereElement) finalAtmosphereElement.textContent = gameState.atmosphere + '%';
-//     if (finalQualityElement) finalQualityElement.textContent = gameState.quality + '%';
-    
-//     switchScreen('win-screen');
-//     console.log('Игра завершена, итоговый ранг:', finalRank);
-// }
 
 function startNewGame() {
     console.log('Начало новой игры');
@@ -1054,27 +983,42 @@ function showNotification(message, type = 'info') {
 }
 
 function endGame() {
-    console.log('Завершение игры');
+    console.log('Завершение игры, текущее состояние:', gameState);
     
-    // Определяем итоговую оценку
-    let budgetRank, atmosphereRank, qualityRank;
+    // ОБЯЗАТЕЛЬНО: получаем актуальные значения из DOM или gameState
+    // Проверим, что gameState содержит правильные значения
+    console.log('Бюджет:', gameState.budget, 'Атмосфера:', gameState.atmosphere, 'Качество:', gameState.quality);
     
-    if (gameState.budget > 600000) budgetRank = 'A';
-    else if (gameState.budget > 300000) budgetRank = 'B';
-    else if (gameState.budget > 100000) budgetRank = 'C';
+    // Определяем итоговую оценку НА ОСНОВЕ ФАКТИЧЕСКИХ ЗНАЧЕНИЙ
+    let budgetRank, atmosphereRank, qualityRank
+    
+   // Убедимся, что значения не undefined или null
+    const finalBudget = gameState.budget || 0;
+    const finalAtmosphere = gameState.atmosphere || 0;
+    const finalQuality = gameState.quality || 0;
+    
+    console.log('Финальные значения для расчета:', finalBudget, finalAtmosphere, finalQuality);
+    
+    // Ранги для бюджета
+    if (finalBudget > 600000) budgetRank = 'A';
+    else if (finalBudget > 300000) budgetRank = 'B';
+    else if (finalBudget > 100000) budgetRank = 'C';
     else budgetRank = 'D';
     
-    if (gameState.atmosphere > 70) atmosphereRank = 'A';
-    else if (gameState.atmosphere > 50) atmosphereRank = 'B';
-    else if (gameState.atmosphere > 35) atmosphereRank = 'C';
+    // Ранги для атмосферы
+    if (finalAtmosphere > 70) atmosphereRank = 'A';
+    else if (finalAtmosphere > 50) atmosphereRank = 'B';
+    else if (finalAtmosphere > 35) atmosphereRank = 'C';
     else atmosphereRank = 'D';
     
-    if (gameState.quality > 70) qualityRank = 'A';
-    else if (gameState.quality > 50) qualityRank = 'B';
-    else if (gameState.quality > 40) qualityRank = 'C';
+    // Ранги для качества
+    if (finalQuality > 70) qualityRank = 'A';
+    else if (finalQuality > 50) qualityRank = 'B';
+    else if (finalQuality > 40) qualityRank = 'C';
     else qualityRank = 'D';
     
     const finalRank = budgetRank + atmosphereRank + qualityRank;
+    console.log('Финальный ранг:', finalRank, '(', budgetRank, atmosphereRank, qualityRank, ')');
     
     // Подсчитываем количество каждого уровня
     const counts = {
@@ -1219,7 +1163,7 @@ function endGame() {
         description = "Ты довёл проект до конца. Есть над чем работать, но этот опыт бесценен. Каждый следующий проект будет лучше. Твой результат — " + finalRank;
     }
     
-    // Заполняем экран победы
+// Заполняем экран победы - используем актуальные значения
     const finalRankElement = document.getElementById('final-rank');
     const resultTitleElement = document.getElementById('result-player-title');
     const resultDescriptionElement = document.getElementById('result-description');
@@ -1227,6 +1171,7 @@ function endGame() {
     const finalAtmosphereElement = document.getElementById('final-atmosphere');
     const finalQualityElement = document.getElementById('final-quality');
     
+    if (finalRankElement) finalRankElement.textContent = finalRank;
     if (finalRankElement) finalRankElement.textContent = finalRank;
     if (resultTitleElement) resultTitleElement.textContent = title;
     if (resultDescriptionElement) resultDescriptionElement.textContent = description;
