@@ -746,7 +746,7 @@ function showFailScreen() {
     // ПОСЛЕ ПРОВАЛА ТОЖЕ ПЕРЕХОДИМ НА РЕЙТИНГ
     setTimeout(() => {
         showLeaderboard();
-    }, 3000);
+    }, 7000);
 };
 
 
@@ -1075,33 +1075,186 @@ function endGame() {
     else qualityRank = 'D';
     
     const finalRank = budgetRank + atmosphereRank + qualityRank;
-    playerRank = finalRank;
     
-    // Определяем звание
+    // Подсчитываем количество каждого уровня
+    const counts = {
+        A: (finalRank.match(/A/g) || []).length,
+        B: (finalRank.match(/B/g) || []).length,
+        C: (finalRank.match(/C/g) || []).length,
+        D: (finalRank.match(/D/g) || []).length
+    };
+    
+    // Определяем тип комбинации
+    const comboType = {
+        allSame: counts.A === 3 || counts.B === 3 || counts.C === 3 || counts.D === 3,
+        twoSameOneDiff: Object.values(counts).some(count => count === 2),
+        allDifferent: counts.A + counts.B + counts.C + counts.D === 3 && 
+                     Object.values(counts).every(count => count <= 1)
+    };
+    
+    // Логика определения звания с учетом ВСЕХ комбинаций
     let title = "", description = "";
     
-    if (finalRank === "AAA") {
-        title = "ЛЕГЕНДАРНЫЙ ЛИДЕР";
-        description = "Ты прошёл через все трудности и вышел невредимым! Идеальный баланс между бюджетом, командой и качеством. Тебя уважают, тебе доверяют, тебе подражают.";
-    } else if (["AAB", "ABA", "BAA"].includes(finalRank)) {
-        title = "НАДЁЖНЫЙ УПРАВЛЕНЕЦ";
-        description = "Проект выполнен отлично! Две из трёх метрик на высоте. Команда довольна, клиенты счастливы, начальство предлагает повышение.";
-    } else if (["BBB", "BBC", "BCB", "CBB"].includes(finalRank)) {
-        title = "БАЛАНСИР";
-        description = "Ты постоянно жертвовал чем-то ради чего-то, но довёл дело до конца. Стандартный реалист в мире управления проектами.";
-    } else if (["CDD", "DCD", "DDC"].includes(finalRank)) {
-        title = "СПАСАТЕЛЬ";
-        description = "Ты вытащил проект с самого дна. Он жив, но шрамы остались на всех. Задача выполнена, но ценой больших потерь.";
-    } else if (gameState.atmosphere <= 25 && (gameState.budget > 600000 || gameState.quality > 70)) {
+    // 1. ВСЕ МЕТРИКИ НА ОДНОМ УРОВНЕ (4 варианта)
+    if (comboType.allSame) {
+        if (counts.A === 3) {
+            title = "ЛЕГЕНДАРНЫЙ ЛИДЕР";
+            description = "Ты прошёл через все трудности и вышел невредимым! Идеальный баланс между бюджетом, командой и качеством. Тебя уважают, тебе доверяют, тебе подражают.";
+        } else if (counts.B === 3) {
+            title = "СТАБИЛЬНЫЙ БАЛАНСИР";
+            description = "Три стабильные B — идеальная середина! Ты мастерски балансировал между всеми аспектами проекта, избегая крайностей. Надежный и предсказуемый руководитель.";
+        } else if (counts.C === 3) {
+            title = "СРЕДНИЙ РУКОВОДИТЕЛЬ";
+            description = "Все метрики на среднем уровне. Проект завершен, но без блеска. Ты избегал рисков, но и не достиг выдающихся результатов.";
+        } else if (counts.D === 3) {
+            title = "ВЫЖИВШИЙ";
+            description = "Проект завершен, но на пределе возможностей. Все три метрики на низком уровне, но ты сумел довести дело до конца в экстремальных условиях.";
+        }
+    }
+    // 2. ДВЕ МЕТРИКИ ОДИНАКОВЫЕ, ОДНА ДРУГАЯ (36 вариантов)
+    else if (comboType.twoSameOneDiff) {
+        // AAB, ABA, BAA и т.д.
+        if (counts.A === 2) {
+            if (counts.B === 1) {
+                title = "НАДЁЖНЫЙ УПРАВЛЕНЕЦ";
+                description = "Две метрики на высшем уровне, одна — на хорошем. Проект выполнен блестяще с минимальными компромиссами. Команда довольна, клиенты счастливы, начальство предлагает повышение.";
+            } else if (counts.C === 1) {
+                title = "ПРАГМАТИЧНЫЙ ЛИДЕР";
+                description = "Две важнейшие метрики на высоте, но пришлось пожертвовать одной. Ты сделал правильный стратегический выбор, сфокусировавшись на главном.";
+            } else if (counts.D === 1) {
+                title = "СТРАТЕГ-ЖЕРТВОВАТЕЛЬ";
+                description = "Ты сознательно принес в жертву одну метрику ради двух других. Жесткое, но эффективное решение в условиях ограниченных ресурсов.";
+            }
+        } else if (counts.B === 2) {
+            if (counts.A === 1) {
+                title = "СБАЛАНСИРОВАННЫЙ СПЕЦИАЛИСТ";
+                description = "Одна выдающаяся метрика и две стабильные. Ты показал отличный результат, грамотно распределив усилия и ресурсы.";
+            } else if (counts.C === 1) {
+                title = "ОСТОРОЖНЫЙ БАЛАНСИР";
+                description = "Две метрики на хорошем уровне, одна требует внимания. Ты избегал крайностей, предпочитая стабильность и предсказуемость.";
+            } else if (counts.D === 1) {
+                title = "СПАСАТЕЛЬ НА ГРАНИ";
+                description = "Ты удержал две метрики на приемлемом уровне, но одна вышла из-под контроля. Проект спасен, но цена была высокой.";
+            }
+        } else if (counts.C === 2) {
+            if (counts.A === 1) {
+                title = "АСИММЕТРИЧНЫЙ ТАЛАНТ";
+                description = "Ты блестяще справился с одной ключевой задачей, но две другие требуют улучшения. Яркий специалист с узкой фокусировкой.";
+            } else if (counts.B === 1) {
+                title = "БОРЦЬ ЗА СТАБИЛЬНОСТЬ";
+                description = "Одна метрика на хорошем уровне, две — требуют срочного внимания. Ты постоянно тушил пожары, но сохранил контроль.";
+            } else if (counts.D === 1) {
+                title = "ТУШИТЕЛЬ ПОЖАРОВ";
+                description = "Две метрики на низком уровне, одна критична. Ты постоянно находился в режиме кризис-менеджмента, едва справляясь с проблемами.";
+            }
+        } else if (counts.D === 2) {
+            if (counts.A === 1) {
+                title = "ГЕРОЙ-ОДИНОЧКА";
+                description = "Ты достиг выдающегося результата по одной метрике, но две другие провалены. Яркий, но однобокий успех.";
+            } else if (counts.B === 1) {
+                title = "УДЕРЖИВАЮЩИЙ РУБЕЖИ";
+                description = "Одна метрика на хорошем уровне, но две в критическом состоянии. Ты удержал хотя бы что-то, пока всё остальное рушилось.";
+            } else if (counts.C === 1) {
+                title = "КРИЗИСНЫЙ МЕНЕДЖЕР";
+                description = "Две метрики в кризисе, одна едва держится. Ты работал на пределе, постоянно решая экстренные проблемы.";
+            }
+        }
+    }
+    // 3. ВСЕ МЕТРИКИ РАЗНЫЕ (24 варианта)
+    else if (comboType.allDifferent) {
+        const ranks = [budgetRank, atmosphereRank, qualityRank];
+        
+        // Определяем "разброс" уровней
+        const levelValues = { A: 4, B: 3, C: 2, D: 1 };
+        const values = ranks.map(r => levelValues[r]);
+        const max = Math.max(...values);
+        const min = Math.min(...values);
+        const spread = max - min;
+        
+        // A-B-C комбинации
+        if (counts.A === 1 && counts.B === 1 && counts.C === 1) {
+            title = "ГРАДУИРОВАННЫЙ УПРАВЛЕНЕЦ";
+            description = "Каждая метрика на своем уровне — от высшего до среднего. Ты тонко чувствуешь приоритеты и умело распределяешь внимание между разными аспектами проекта.";
+        }
+        // A-B-D комбинации
+        else if (counts.A === 1 && counts.B === 1 && counts.D === 1) {
+            title = "ПОЛЯРИЗОВАННЫЙ ЛИДЕР";
+            description = "Один блестящий успех, один хороший результат и один полный провал. Ты принимал смелые решения, которые принесли как триумфы, так и катастрофы.";
+        }
+        // A-C-D комбинации
+        else if (counts.A === 1 && counts.C === 1 && counts.D === 1) {
+            title = "РИСКОВАННЫЙ СТРАТЕГ";
+            description = "Максимальный разброс результатов: от высшего достижения до критического провала. Ты играл по-крупному, и результаты оказались непредсказуемыми.";
+        }
+        // B-C-D комбинации
+        else if (counts.B === 1 && counts.C === 1 && counts.D === 1) {
+            title = "ХАОТИЧНЫЙ МЕНЕДЖЕР";
+            description = "Полный спектр результатов — от приемлемого до катастрофического. Ты постоянно лавировал между разными проблемами, с переменным успехом.";
+        }
+        // Обработка крайних случаев разброса
+        else if (spread === 3) { // A и D в одной комбинации
+            title = "ЭКСТРЕМАЛЬНЫЙ РУКОВОДИТЕЛЬ";
+            description = "Ты достиг одновременно высшего успеха и полного провала. Такой разброс говорит о крайне неравномерном внимании к разным аспектам проекта.";
+        } else if (spread === 2) { // Разница в 2 уровня
+            title = "НЕСБАЛАНСИРОВАННЫЙ СПЕЦИАЛИСТ";
+            description = "Значительный разброс между метриками показывает твою склонность фокусироваться на одних задачах в ущерб другим.";
+        } else if (spread === 1) { // Разница в 1 уровень
+            title = "ГРАДУИРОВАННЫЙ МЕНЕДЖЕР";
+            description = "Плавный градиент между метриками — ты умеешь расставлять приоритеты, но делаешь это постепенно и осознанно.";
+        }
+    }
+    
+    // 4. СПЕЦИАЛЬНЫЕ КЕЙСЫ (имеют приоритет над обычной логикой)
+    if (gameState.atmosphere <= 25 && (gameState.budget > 600000 || gameState.quality > 70)) {
         title = "ДИКТАТОР";
-        description = "Продукт вышел, деньги сэкономлены, но команда тебя ненавидит. Краткосрочный успех обернулся долгосрочными проблемами.";
+        description = "Продукт вышел, деньги сэкономлены, но команда тебя ненавидит. Ты достиг результатов любой ценой, уничтожив моральный дух коллектива. Краткосрочный успех обернулся долгосрочными проблемами.";
     } else if (gameState.atmosphere > 85 && (gameState.budget < 300000 || gameState.quality < 50)) {
         title = "ДУША КОМПАНИИ";
-        description = "Все тебя обожают, но проект едва жив и клиент недоволен. Хорошая атмосфера, к сожалению, не компенсирует плохие результаты.";
-    } else {
-        title = "РУКОВОДИТЕЛЬ ПРОЕКТА";
-        description = "Ты довёл проект до конца. Есть над чем работать, но этот опыт бесценен. Каждый следующий проект будет лучше.";
+        description = "Все тебя обожают, но проект едва жив и клиент недоволен. Ты создал прекрасную атмосферу, но забыл о результатах. Хорошие отношения, к сожалению, не компенсируют плохие показатели.";
     }
+    
+    // 5. ЗАГЛУШКА НА ВСЕ ОСТАЛЬНЫЕ СЛУЧАИ
+    if (!title) {
+        title = "РУКОВОДИТЕЛЬ ПРОЕКТА";
+        description = "Ты довёл проект до конца. Есть над чем работать, но этот опыт бесценен. Каждый следующий проект будет лучше. Твой результат — " + finalRank;
+    }
+    
+    // Заполняем экран победы
+    const finalRankElement = document.getElementById('final-rank');
+    const resultTitleElement = document.getElementById('result-player-title');
+    const resultDescriptionElement = document.getElementById('result-description');
+    const finalBudgetElement = document.getElementById('final-budget');
+    const finalAtmosphereElement = document.getElementById('final-atmosphere');
+    const finalQualityElement = document.getElementById('final-quality');
+    
+    if (finalRankElement) finalRankElement.textContent = finalRank;
+    if (resultTitleElement) resultTitleElement.textContent = title;
+    if (resultDescriptionElement) resultDescriptionElement.textContent = description;
+    if (finalBudgetElement) finalBudgetElement.textContent = `${gameState.budget.toLocaleString('ru-RU')} ₽`;
+    if (finalAtmosphereElement) finalAtmosphereElement.textContent = gameState.atmosphere + '%';
+    if (finalQualityElement) finalQualityElement.textContent = gameState.quality + '%';
+    
+    // Отображаем детализацию уровней
+    const rankDetailsElement = document.getElementById('rank-details');
+    if (rankDetailsElement) {
+        rankDetailsElement.innerHTML = `
+            <div class="rank-detail">
+                <span class="metric-name">Бюджет:</span>
+                <span class="metric-rank rank-${budgetRank.toLowerCase()}">${budgetRank}</span>
+            </div>
+            <div class="rank-detail">
+                <span class="metric-name">Атмосфера:</span>
+                <span class="metric-rank rank-${atmosphereRank.toLowerCase()}">${atmosphereRank}</span>
+            </div>
+            <div class="rank-detail">
+                <span class="metric-name">Качество:</span>
+                <span class="metric-rank rank-${qualityRank.toLowerCase()}">${qualityRank}</span>
+            </div>
+        `;
+    }
+    
+    switchScreen('win-screen');
+    console.log('Игра завершена, итоговый ранг:', finalRank, 'Звание:', title);
     
     // Сохраняем финальные данные
     const finalData = {
@@ -1123,7 +1276,7 @@ function endGame() {
     // ПОСЛЕ СОХРАНЕНИЯ РЕЗУЛЬТАТА, ПЕРЕХОДИМ НА ЭКРАН РЕЙТИНГА
     setTimeout(() => {
         showLeaderboard();
-    }, 3000);
+    }, 7000);
     
     console.log('Игра завершена, итоговый ранг:', finalRank);
 }

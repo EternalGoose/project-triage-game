@@ -1574,4 +1574,255 @@ input, textarea, select {
     from { opacity: 1; }
     to { opacity: 0; }
 }
+/* ============================
+   ДЕТАЛИ РАНГОВ МЕТРИК
+   ============================ */
+
+.rank-details {
+    width: 100%;
+    max-width: 500px;
+    background: var(--bg-panel);
+    border: var(--border-pixel);
+    border-radius: var(--radius);
+    padding: var(--space-md);
+    margin: var(--space-lg) 0;
+    border-left: 4px solid var(--primary-purple);
+}
+
+.rank-detail {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--space-sm) var(--space-md);
+    margin: var(--space-xs) 0;
+    background: var(--bg-panel-alt);
+    border: var(--border-pixel);
+    border-radius: var(--radius-sm);
+    transition: all 0.3s ease;
+}
+
+.rank-detail:hover {
+    background: var(--bg-panel);
+    border-color: var(--primary-blue);
+    transform: translateX(4px);
+}
+
+.metric-name {
+    font-family: var(--font-main);
+    font-size: 14px;
+    color: var(--text-secondary);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.metric-rank {
+    font-family: var(--font-pixel);
+    font-size: 18px;
+    font-weight: 700;
+    padding: 4px 12px;
+    border-radius: var(--radius-sm);
+    border: 2px solid #000000;
+    text-shadow: 1px 1px 0 #000000;
+    box-shadow: 0 0 8px currentColor;
+    min-width: 50px;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.metric-rank:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 12px currentColor;
+}
+
+/* Цвета для рангов */
+.rank-a {
+    color: #00D48A;
+    background: rgba(0, 212, 138, 0.15);
+    border-color: #00D48A;
+}
+
+.rank-b {
+    color: #FFD200;
+    background: rgba(255, 210, 0, 0.15);
+    border-color: #FFD200;
+}
+
+.rank-c {
+    color: #FF8A00;
+    background: rgba(255, 138, 0, 0.15);
+    border-color: #FF8A00;
+}
+
+.rank-d {
+    color: #FF4757;
+    background: rgba(255, 71, 87, 0.15);
+    border-color: #FF4757;
+}
+
+/* Иконки для рангов */
+.metric-name::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 8px;
+    border-radius: 50%;
+    vertical-align: middle;
+}
+
+.rank-detail:nth-child(1) .metric-name::before {
+    background: var(--primary-green);
+    box-shadow: 0 0 6px var(--primary-green);
+}
+
+.rank-detail:nth-child(2) .metric-name::before {
+    background: var(--primary-blue);
+    box-shadow: 0 0 6px var(--primary-blue);
+}
+
+.rank-detail:nth-child(3) .metric-name::before {
+    background: var(--primary-yellow);
+    box-shadow: 0 0 6px var(--primary-yellow);
+}
+
+/* Пиксельный эффект для фона рангов */
+.rank-a::before,
+.rank-b::before,
+.rank-c::before,
+.rank-d::before {
+    content: '';
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    right: 1px;
+    bottom: 1px;
+    background-image: 
+        linear-gradient(45deg, 
+            transparent 25%, 
+            rgba(255, 255, 255, 0.05) 25%, 
+            rgba(255, 255, 255, 0.05) 50%, 
+            transparent 50%, 
+            transparent 75%, 
+            rgba(255, 255, 255, 0.05) 75%, 
+            rgba(255, 255, 255, 0.05)
+        );
+    background-size: 4px 4px;
+    border-radius: calc(var(--radius-sm) - 1px);
+    pointer-events: none;
+}
+
+/* Анимация появления */
+@keyframes rankReveal {
+    0% {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.rank-detail:nth-child(1) {
+    animation: rankReveal 0.3s ease 0.1s both;
+}
+
+.rank-detail:nth-child(2) {
+    animation: rankReveal 0.3s ease 0.2s both;
+}
+
+.rank-detail:nth-child(3) {
+    animation: rankReveal 0.3s ease 0.3s both;
+}
+
+/* Заголовок блока */
+.rank-details::before {
+    content: 'ДЕТАЛИЗАЦИЯ РАНГОВ';
+    display: block;
+    font-family: var(--font-pixel);
+    font-size: 12px;
+    color: var(--primary-purple);
+    text-align: center;
+    margin-bottom: var(--space-md);
+    text-shadow: 1px 1px 0 #000000;
+    letter-spacing: 2px;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+    .rank-details {
+        max-width: 300px;
+        padding: var(--space-sm);
+    }
+    
+    .rank-detail {
+        padding: var(--space-xs) var(--space-sm);
+    }
+    
+    .metric-name {
+        font-size: 12px;
+    }
+    
+    .metric-rank {
+        font-size: 16px;
+        padding: 3px 10px;
+        min-width: 40px;
+    }
+    
+    .rank-details::before {
+        font-size: 10px;
+    }
+}
+
+/* Для экрана результатов (win-screen) */
+.win-screen .rank-details {
+    border-left: 4px solid var(--primary-green);
+    background: rgba(0, 212, 138, 0.05);
+}
+
+.win-screen .rank-details::before {
+    color: var(--primary-green);
+}
+
+/* Для экрана провала (fail-screen) */
+.fail-screen .rank-details {
+    border-left: 4px solid var(--primary-red);
+    background: rgba(255, 59, 92, 0.05);
+}
+
+.fail-screen .rank-details::before {
+    color: var(--primary-red);
+}
+
+/* Дополнительный эффект для AAA ранга */
+.rank-detail .metric-rank[class*="rank-a"]:only-child {
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        box-shadow: 0 0 8px currentColor;
+    }
+    50% {
+        box-shadow: 0 0 16px currentColor;
+    }
+}
+
+/* Индикатор комбинации рангов */
+.rank-summary {
+    font-family: var(--font-pixel);
+    font-size: 14px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: var(--space-sm);
+    padding-top: var(--space-sm);
+    border-top: 1px solid var(--text-dim);
+}
+
+.rank-summary strong {
+    color: var(--text-primary);
+    font-size: 16px;
+    margin-left: 4px;
+}
 }
