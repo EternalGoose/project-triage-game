@@ -85,18 +85,12 @@ const Leaderboard = {
         };
     },
     
-// В функции saveToOnline:
 saveToOnline: async function(playerData) {
     console.log('📤 Попытка онлайн-сохранения:', playerData);
     
-    if (!this.state.isOnline) {
-        console.log('⚠️ Нет соединения, пропускаем онлайн-сохранение');
-        return null;
-    }
-    
     try {
-        // Формируем URL с параметрами
-        const params = new URLSearchParams({
+        // Формируем данные для отправки
+        const postData = {
             action: 'saveScore',
             apiKey: this.config.apiKey,
             name: playerData.name.substring(0, 15),
@@ -107,66 +101,43 @@ saveToOnline: async function(playerData) {
             quality: playerData.quality || 0,
             timestamp: Date.now(),
             source: 'github_pages'
+        };
+        
+        console.log('Отправляемые данные:', postData);
+        
+        // Используем POST запрос с JSON телом
+        const response = await fetch(this.config.apiUrl, {
+            method: 'POST',
+            mode: 'cors', // Измените на 'cors'
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(postData)
         });
         
-        const url = `${this.config.apiUrl}?${params.toString()}`;
-        console.log('Отправка запроса на URL:', url);
+        console.log('Статус ответа:', response.status);
         
-        // Проверяем URL в консоли разработчика
-        console.log('Данные для отправки:');
-        console.log('- Имя:', playerData.name);
-        console.log('- Очки:', playerData.score);
-        console.log('- Ранг:', playerData.rank);
-        console.log('- Бюджет:', playerData.budget);
-        console.log('- Атмосфера:', playerData.atmosphere);
-        console.log('- Качество:', playerData.quality);
-        
-        // Пробуем разные подходы к отправке
-        let response;
-        try {
-            // Пытаемся отправить с режимом 'cors' если возможно
-            response = await fetch(url, {
-                method: 'GET',
-                mode: 'cors',
-                headers: {
-                    'Accept': 'application/json',
-                }
-            });
+        if (response.ok) {
+            const result = await response.json();
+            console.log('📥 Получен ответ:', result);
             
-            console.log('Запрос отправлен (cors)');
-            console.log('Статус ответа:', response.status);
+            // Обновляем кэш
+            setTimeout(() => {
+                this.loadOnlineScores();
+            }, 1000);
             
-            if (response.ok) {
-                const result = await response.text();
-                console.log('📥 Получен ответ:', result);
-            }
-            
-        } catch (corsError) {
-            console.log(' Ошибка CORS, пробуем no-cors:', corsError);
-            
-            // Пробуем режим no-cors
-            response = await fetch(url, {
-                method: 'GET',
-                mode: 'no-cors'
-            });
-            
-            console.log('🔄 Запрос отправлен (no-cors mode)');
-            // В режиме no-cors мы не можем прочитать ответ
+            return {
+                success: true,
+                position: result.position || 1
+            };
+        } else {
+            const errorText = await response.text();
+            console.error('❌ Ошибка сервера:', errorText);
+            throw new Error('Ошибка сервера: ' + errorText);
         }
-        
-        // Обновляем кэш
-        setTimeout(() => {
-            this.loadOnlineScores();
-        }, 1000);
-        
-        return {
-            success: true,
-            position: 1
-        };
         
     } catch (error) {
         console.error('❌ Критическая ошибка сохранения онлайн:', error);
-        // Показываем ошибку в интерфейсе
         this.showStatus('❌ Ошибка соединения с сервером');
         throw error;
     }
