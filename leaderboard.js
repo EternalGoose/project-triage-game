@@ -85,52 +85,92 @@ const Leaderboard = {
         };
     },
     
-    // Сохранить онлайн
-    saveToOnline: async function(playerData) {
-        if (!this.state.isOnline) return null;
+// В функции saveToOnline:
+saveToOnline: async function(playerData) {
+    console.log('📤 Попытка онлайн-сохранения:', playerData);
+    
+    if (!this.state.isOnline) {
+        console.log('⚠️ Нет соединения, пропускаем онлайн-сохранение');
+        return null;
+    }
+    
+    try {
+        // Формируем URL с параметрами
+        const params = new URLSearchParams({
+            action: 'saveScore',
+            apiKey: this.config.apiKey,
+            name: playerData.name.substring(0, 15),
+            score: playerData.score,
+            rank: playerData.rank || 'AAA',
+            budget: playerData.budget || 0,
+            atmosphere: playerData.atmosphere || 0,
+            quality: playerData.quality || 0,
+            timestamp: Date.now(),
+            source: 'github_pages'
+        });
         
+        const url = `${this.config.apiUrl}?${params.toString()}`;
+        console.log('Отправка запроса на URL:', url);
+        
+        // Проверяем URL в консоли разработчика
+        console.log('Данные для отправки:');
+        console.log('- Имя:', playerData.name);
+        console.log('- Очки:', playerData.score);
+        console.log('- Ранг:', playerData.rank);
+        console.log('- Бюджет:', playerData.budget);
+        console.log('- Атмосфера:', playerData.atmosphere);
+        console.log('- Качество:', playerData.quality);
+        
+        // Пробуем разные подходы к отправке
+        let response;
         try {
-            // Формируем URL с параметрами
-            const params = new URLSearchParams({
-                action: 'saveScore',
-                apiKey: this.config.apiKey,
-                name: playerData.name.substring(0, 15),
-                score: playerData.score,
-                rank: playerData.rank || 'AAA',
-                budget: playerData.budget || 0,
-                atmosphere: playerData.atmosphere || 0,
-                quality: playerData.quality || 0,
-                timestamp: Date.now(),
-                ip: 'github_pages'
+            // Пытаемся отправить с режимом 'cors' если возможно
+            response = await fetch(url, {
+                method: 'GET',
+                mode: 'cors',
+                headers: {
+                    'Accept': 'application/json',
+                }
             });
             
-            const url = `${this.config.apiUrl}?${params.toString()}`;
-            console.log('Отправка запроса:', url);
+            console.log('Запрос отправлен (cors)');
+            console.log('Статус ответа:', response.status);
             
-            // Используем fetch с mode 'no-cors' для обхода ограничений
-            const response = await fetch(url, {
+            if (response.ok) {
+                const result = await response.text();
+                console.log('📥 Получен ответ:', result);
+            }
+            
+        } catch (corsError) {
+            console.log(' Ошибка CORS, пробуем no-cors:', corsError);
+            
+            // Пробуем режим no-cors
+            response = await fetch(url, {
                 method: 'GET',
                 mode: 'no-cors'
             });
             
-            // При mode 'no-cors' мы не можем прочитать ответ, но запрос отправлен
-            console.log('Запрос отправлен (no-cors mode)');
-            
-            // Обновляем кэш
-            setTimeout(() => {
-                this.loadOnlineScores();
-            }, 1000);
-            
-            return {
-                success: true,
-                position: 1
-            };
-            
-        } catch (error) {
-            console.error('Ошибка сохранения онлайн:', error);
-            throw error;
+            console.log('🔄 Запрос отправлен (no-cors mode)');
+            // В режиме no-cors мы не можем прочитать ответ
         }
-    },
+        
+        // Обновляем кэш
+        setTimeout(() => {
+            this.loadOnlineScores();
+        }, 1000);
+        
+        return {
+            success: true,
+            position: 1
+        };
+        
+    } catch (error) {
+        console.error('❌ Критическая ошибка сохранения онлайн:', error);
+        // Показываем ошибку в интерфейсе
+        this.showStatus('❌ Ошибка соединения с сервером');
+        throw error;
+    }
+},
     
     // Сохранить локально
     saveToLocal: function(playerData) {
